@@ -17,7 +17,7 @@ public class FungibleTokenState extends EvolvableTokenType {
 
     private final BigDecimal valuation;
     private final Party maintainer;
-    private final UniqueIdentifier uniqueIdentifier;
+    public final UniqueIdentifier uniqueIdentifier;
     private final String symbol;
     private final int fractionDigits;
     private final int quantity;

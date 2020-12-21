@@ -75,8 +75,7 @@ public class IssueCashFlow extends FlowLogic<String> {
         //Issue fungible tokens to specified account
         SignedTransaction stx =subFlow(new IssueTokens(Arrays.asList(fungibleToken)));
 
-        return "Issued "+amount+" token(s) to "+accountName + " Available tokens " + (availableTokensInt - amount)+
-                "\ntxId: "+stx.getId().toString()+"";
+        return stx.getId().toString();
     }
 
     public TokenType getInstance(String currencyCode) {
