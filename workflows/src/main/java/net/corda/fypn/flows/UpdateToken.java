@@ -11,13 +11,18 @@ import net.corda.core.contracts.StateAndRef;
 import net.corda.core.contracts.TransactionState;
 import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.flows.*;
+import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
+import net.corda.core.messaging.CordaRPCOps;
+import net.corda.core.node.NodeInfo;
 import net.corda.core.node.services.IdentityService;
 import net.corda.core.transactions.SignedTransaction;
 import net.corda.fyp.states.FungibleTokenState;
 
 import java.math.BigDecimal;
 import java.util.*;
+
+import static java.util.Collections.emptyList;
 
 /**
  * flow start UpdateToken$UpdateTokenInitiator amount : 100 , symbol : house , valuation : 5
@@ -29,13 +34,11 @@ public class UpdateToken {
     public static class UpdateTokenInitiator extends FlowLogic<String> {
 
 
-        private final Long amount;
         private final BigDecimal valuation;
         private String symbol;
         private int quantity;
 
-        public UpdateTokenInitiator(Long amount, String symbol, BigDecimal valuation,int quantity) {
-            this.amount = amount;
+        public UpdateTokenInitiator(String symbol, BigDecimal valuation,int quantity) {
             this.symbol = symbol;
             this.valuation = valuation;
             this.quantity = quantity;
@@ -54,30 +57,17 @@ public class UpdateToken {
             final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
             //create token type
             FungibleTokenState newEvolvableTokenType = new FungibleTokenState(valuation, getOurIdentity(),
-                    new UniqueIdentifier(), 0, this.symbol,quantity);
+                    stateAndRef.getState().getData().getLinearId(), 0, this.symbol,quantity);
 
-            //wrap it with transaction state specifying the notary
-            TransactionState<FungibleTokenState> transactionState = new TransactionState<>(newEvolvableTokenType, notary);
-            // Get predefined observers
-            IdentityService identityService = getServiceHub().getIdentityService();
-            List<Party> observers = getObserverLegalIdenties(identityService);
-            List<FlowSession> obSessions = new ArrayList<>();
-            for (Party observer : observers) {
-                obSessions.add(initiateFlow(observer));
-            }
-
+            List<FlowSession> partySessions = new ArrayList<>();
+            partySessions.add(initiateFlow(notary));
             //Issue fungible tokens to specified account
-            SignedTransaction stx = subFlow(new UpdateEvolvableTokenFlow(stateAndRef, newEvolvableTokenType, ImmutableList.of(), ImmutableList.of()));
+            SignedTransaction stx = subFlow(new UpdateEvolvableTokenFlow(stateAndRef,
+                    newEvolvableTokenType,
+                    emptyList(),
+                    partySessions));
 
-            StateAndRef<FungibleTokenState> newStateAndRef = getServiceHub().getVaultService().
-                    queryBy(FungibleTokenState.class).getStates().stream()
-                    .filter(sf -> sf.getState().getData().getSymbol().equals(symbol)).findAny()
-                    .orElseThrow(() -> new IllegalArgumentException("FungibleHouseTokenState symbol=\"" + symbol + "\" not found from vault"));
-
-            String newSymbol = stateAndRef.getState().getData().getSymbol();
-            BigDecimal newValuation = stateAndRef.getState().getData().getValuation();
-
-            return "Update token " + newSymbol + "Valuation" + newValuation;
+            return "Update token";
         }
 
         public TokenType getInstance(String currencyCode) {

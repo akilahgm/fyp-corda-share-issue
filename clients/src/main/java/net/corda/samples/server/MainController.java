@@ -5,6 +5,7 @@ import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
 import net.corda.core.messaging.CordaRPCOps;
 import net.corda.core.node.NodeInfo;
+import net.corda.core.transactions.SignedTransaction;
 import net.corda.fyp.flows.*;
 
 import java.math.BigDecimal;
@@ -62,6 +63,17 @@ public class MainController {
 
     public static class CreateAccountData{
         public String accountName;
+    }
+    public static class CreateToken{
+        public BigDecimal valuation;
+        public String symbol;
+        public int quantity;
+    }
+    public static class Exchange{
+        public String senderAccount;
+        public String correspondingId;
+        public Long amount;
+        public String symbol;
     }
 
     private boolean isMe(NodeInfo nodeInfo){
@@ -177,24 +189,63 @@ public class MainController {
         }
     }
 
-    @GetMapping(value =  "exchange" , produces =  TEXT_PLAIN_VALUE )
-    public ResponseEntity<String> getExchangeData(@RequestParam(value = "correspondingId") String correspondingId) {
+    @PostMapping(value =  "token" , produces =  APPLICATION_JSON_VALUE )
+    public ResponseEntity<String> createToken(@RequestBody CreateToken data) {
+        try {
+            proxy.startTrackedFlowDynamic(RealEstateEvolvableFungibleTokenFlow.CreateHouseTokenFlow.class,data.symbol,data.valuation,data.quantity).getReturnValue().get();
+            System.out.println("flow created");
+            return ResponseEntity.status(HttpStatus.CREATED).body("success");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping(value =  "exchange" , produces =  APPLICATION_JSON_VALUE )
+    public ResponseEntity<String> exchange(@RequestBody Exchange data) {
+        try {
+            proxy.startTrackedFlowDynamic(ExchangeShares.class,data.senderAccount,data.amount,data.correspondingId,"1",data.symbol).getReturnValue().get();
+            System.out.println("flow created");
+            return ResponseEntity.status(HttpStatus.CREATED).body("success");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @GetMapping(value =  "check-claim" , produces =  TEXT_PLAIN_VALUE )
+    public ResponseEntity<String> checkClaimAvailability(@RequestParam(value = "exchangeId") String exchangeId) {
         try {
             ExchangeDetailState data = proxy.startTrackedFlowDynamic(GetExchangeData.class ,
-                    correspondingId).getReturnValue().get();
+                    exchangeId).getReturnValue().get();
             if(data==null){
-                return ResponseEntity.status(HttpStatus.CREATED).body("false");
+                return ResponseEntity.status(HttpStatus.CREATED).body("0");
             }
-            System.out.println(data.getCorrespondingId());
-            System.out.println(data.getExchangeId());
-            System.out.println(data.getSenderAccount());
-            return ResponseEntity.status(HttpStatus.CREATED).body("true");
+            return ResponseEntity.status(HttpStatus.CREATED).body("1");
         } catch (Exception e) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
             System.out.println("Error happen - " +e.getMessage());
             throw new HttpServerErrorException(HttpStatus.BAD_REQUEST,e.getMessage());
         }
     }
+    @GetMapping(value =  "check-refund" , produces =  TEXT_PLAIN_VALUE )
+    public ResponseEntity<String> checkRefundAvailability(@RequestParam(value = "exchangeId") String exchangeId) {
+        try {
+            ExchangeDetailState data = proxy.startTrackedFlowDynamic(GetExchangeData.class ,
+                    exchangeId).getReturnValue().get();
+            if(data==null){
+                return ResponseEntity.status(HttpStatus.CREATED).body("1");
+            }
+            System.out.println(data.getCorrespondingId());
+            System.out.println(data.getExchangeId());
+            System.out.println(data.getSenderAccount());
+            if(data.getStatus() == "2"){
+                return ResponseEntity.status(HttpStatus.CREATED).body("1");
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body("0");
+        } catch (Exception e) {
+            System.out.println("Error happen - " +e.getMessage());
+            throw new HttpServerErrorException(HttpStatus.BAD_REQUEST,e.getMessage());
+        }
+    }
+
 
 //    @Scheduled(initialDelay = 1000, fixedRate = 10000)
 //    public void run() {
