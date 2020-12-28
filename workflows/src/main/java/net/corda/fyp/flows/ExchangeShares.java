@@ -8,14 +8,11 @@ import net.corda.core.flows.FlowException;
 import net.corda.core.flows.FlowLogic;
 import net.corda.core.flows.StartableByRPC;
 import net.corda.core.identity.Party;
-import net.corda.core.transactions.SignedTransaction;
 import net.corda.fyp.states.ExchangeDetailState;
-
-import java.math.BigDecimal;
 
 
 @StartableByRPC
-public class ExchangeShares extends FlowLogic<SignedTransaction> {
+public class ExchangeShares extends FlowLogic<Boolean> {
 
     private final String senderAccount;
     private final String correspondingId;
@@ -33,25 +30,39 @@ public class ExchangeShares extends FlowLogic<SignedTransaction> {
 
     @Override
     @Suspendable
-    public SignedTransaction call() throws FlowException {
-        // Obtain a reference to a notary we wish to use.
-        /** METHOD 1: Take first notary on network, WARNING: use for test, non-prod environments, and single-notary networks only!*
-         *  METHOD 2: Explicit selection of notary by CordaX500Name - argument can by coded in flow or parsed from config (Preferred)
-         *
-         *  * - For production you always want to use Method 2 as it guarantees the expected notary is returned.
-         */
-        final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0); // METHOD 1
-        // final Party notary = getServiceHub().getNetworkMapCache().getNotary(CordaX500Name.parse("O=Notary,L=London,C=GB")); // METHOD 2
+    public Boolean call() throws FlowException {
 
-        String trxId = subFlow(new IssueCashFlow(senderAccount,amount,symbol));
+            String status = subFlow( new HttpCallFlow(correspondingId));
+            System.out.println("Exchange status: "+status);
+            if(!status.equals("0")){
+                System.out.println("Status is not zero");
+                return false;
+            }
+            ExchangeDetailState exchangeData= subFlow(new GetExchangeData(correspondingId));
 
-        //create token type
-        ExchangeDetailState evolvableTokenType = new ExchangeDetailState(getOurIdentity(),new UniqueIdentifier(),0,correspondingId,status,senderAccount,amount,trxId);
+            if(exchangeData != null){
+                System.out.println("Corresponding id already recorded");
+                subFlow(new ClaimHttpFlow(correspondingId));
+                System.out.println("Claim requested from escrow, correspondingId - "+correspondingId);
+                return true;
+            }
 
-        //wrap it with transaction state specifying the notary
-        TransactionState<ExchangeDetailState> transactionState = new TransactionState<>(evolvableTokenType, notary);
+            final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0); // METHOD 1
 
-        //call built in sub flow CreateEvolvableTokens. This can be called via rpc or in unit testing
-        return subFlow(new CreateEvolvableTokens(transactionState));
+            String trxId = subFlow(new IssueCashFlow(senderAccount, amount, symbol));
+
+            //create token type
+            ExchangeDetailState evolvableTokenType = new ExchangeDetailState(getOurIdentity(), new UniqueIdentifier(), 0, correspondingId, status, senderAccount, amount, trxId);
+
+            //wrap it with transaction state specifying the notary
+            TransactionState<ExchangeDetailState> transactionState = new TransactionState<>(evolvableTokenType, notary);
+
+            //call built in sub flow CreateEvolvableTokens. This can be called via rpc or in unit testing
+            subFlow(new CreateEvolvableTokens(transactionState));
+            System.out.println("Exchange status created");
+            subFlow(new ClaimHttpFlow(correspondingId));
+            System.out.println("Claim requested from escrow, correspondingId - "+correspondingId);
+            return true;
+
     }
 }
