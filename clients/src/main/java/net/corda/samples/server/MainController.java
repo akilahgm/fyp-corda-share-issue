@@ -392,7 +392,7 @@ public class MainController {
                 String sender = object.getString("sender");
                 String cordaAccount = object.getString("cordaAccount");
                 String exchangeId = object.getString("exchangeId");
-                String numbrOfShares = object.getString("numbrOfShares");
+                Long numbrOfShares = object.getLong("numbrOfShares");
                 System.out.println("corda account- "+cordaAccount + " sender- "+sender+" exchange id- "+exchangeId + " number of shares- "+numbrOfShares);
                 Boolean res=proxy.startTrackedFlowDynamic(ExchangeShares.class,cordaAccount,numbrOfShares,exchangeId,"1","fyp").getReturnValue().get();
                 System.out.println("flow created - "+ res);
