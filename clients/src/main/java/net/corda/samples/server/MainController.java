@@ -371,7 +371,7 @@ public class MainController {
     }
 
 
-    @Scheduled(initialDelay = 1000, fixedRate = 60000)
+    @Scheduled(initialDelay = 1000, fixedRate = 240000)
     public void run() {
         try {
             BigDecimal valuation = proxy.startTrackedFlowDynamic(GetTokenValuation.class,
@@ -396,7 +396,7 @@ public class MainController {
                 System.out.println("corda account- "+cordaAccount + " sender- "+sender+" exchange id- "+exchangeId + " number of shares- "+numbrOfShares);
                 Boolean res=proxy.startTrackedFlowDynamic(ExchangeShares.class,cordaAccount,numbrOfShares,exchangeId,"1","fyp").getReturnValue().get();
                 System.out.println("flow created - "+ res);
-                TimeUnit.SECONDS.sleep(30);
+                TimeUnit.SECONDS.sleep(60);
             }
         }catch(Exception e){
             System.out.println("Error happen - " + e.getMessage());
