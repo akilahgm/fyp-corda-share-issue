@@ -40,14 +40,15 @@ public class HttpCallFlow extends FlowLogic<String> {
         }
         JSONObject jobject = new JSONObject(value);
         String data =jobject.getString("data");
+        String address =jobject.getString("address");
         System.out.println("Data received - " + data);
 
         OkHttpClient client = new OkHttpClient().newBuilder()
                 .build();
         MediaType mediaType = MediaType.parse("application/json");
-        String jsonStringTemp = "{\"jsonrpc\": \"2.0\",\"id\": 1,\"method\": \"eth_call\",\"params\": [{\"to\": \"0x176Dcf090283792E4b13839ebA636DED8Ed7f448\",\"data\": \"%s\"},\"latest\"]}";
+        String jsonStringTemp = "{\"jsonrpc\": \"2.0\",\"id\": 1,\"method\": \"eth_call\",\"params\": [{\"to\": \"%s\",\"data\": \"%s\"},\"latest\"]}";
 
-        String jsonString = String.format(jsonStringTemp, data);
+        String jsonString = String.format(jsonStringTemp,address, data);
         RequestBody body = RequestBody.create(mediaType,jsonString );
         Request request = new Request.Builder()
                 .url("https://rinkeby.infura.io/v3/98079c61ec6a4c029817d276104753d3")
