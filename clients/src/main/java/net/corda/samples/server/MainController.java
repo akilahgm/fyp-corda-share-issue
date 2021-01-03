@@ -56,7 +56,7 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 /**
  * Define your API endpoints here.
  */
-@CrossOrigin(origins = "http://domain2.com", maxAge = 3600)
+@CrossOrigin(origins = "*", maxAge = 3600)
 @Configuration
 @RestController
 @RequestMapping("/api") // The paths for HTTP requests are relative to this base path.
