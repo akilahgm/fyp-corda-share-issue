@@ -372,7 +372,7 @@ public class MainController {
     }
 
 
-    @Scheduled(initialDelay = 1000, fixedRate = 600000)
+    @Scheduled(initialDelay = 1000, fixedRate = 240000)
     public void run() {
         try {
             BigDecimal valuation = proxy.startTrackedFlowDynamic(GetTokenValuation.class,
