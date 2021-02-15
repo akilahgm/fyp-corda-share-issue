@@ -46,9 +46,9 @@ public class ExchangeShares extends FlowLogic<Boolean> {
                 System.out.println("Claim requested from escrow, correspondingId - "+correspondingId);
                 return true;
             }
-
+            System.out.println("Get notary from index 0");
             final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0); // METHOD 1
-
+            System.out.println("Successfully get notary");
             String trxId = subFlow(new IssueCashFlow(senderAccount, amount, symbol));
 
             //create token type
